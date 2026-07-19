@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/Jnapier2/digital-asset-governance-case-study/actions/workflows/ci.yml/badge.svg)](https://github.com/Jnapier2/digital-asset-governance-case-study/actions/workflows/ci.yml)
 
-A deterministic, read-only Python audit that turns a digital-asset inventory into measurable data-quality signals and a human review queue. The repository uses only synthetic records and the Python standard library.
+A deterministic, read-only Python audit for measuring data quality in a digital-asset inventory and producing a human review queue. It uses only the Python standard library and includes a synthetic fixture.
 
-## Demonstrated outcome
+## Fixture results
 
 Running the included fixture produces these deterministic sample results:
 
@@ -14,13 +14,13 @@ Running the included fixture produces these deterministic sample results:
 - **Mean confidence is 0.74**, with four high-, two medium-, and two low-confidence records.
 - The review queue contains **one exact-name group, two normalized-name groups, and one exact-checksum group**.
 
-These are fixture results, not claims about a production catalog. The deliberately imperfect sample demonstrates how the tool surfaces governance work without exposing private records.
+These are fixture results, not claims about a production catalog. The sample includes incomplete provenance, missing checksums, and duplicate candidates so each audit path has deterministic coverage.
 
-## Why this project exists
+## Audit questions
 
-Asset inventories often mix authoritative records, partial imports, inconsistent filenames, and uncertain provenance. That makes basic questions—what is covered, what can be trusted, and what may be duplicated—expensive to answer.
+Asset inventories can combine authoritative records with partial imports, inconsistent filenames, and uncertain provenance. The audit answers three questions: which records satisfy the schema, which fields have evidence coverage, and which records require duplicate review.
 
-This case study encodes a compact, repeatable audit:
+The pipeline is read-only:
 
 ```mermaid
 flowchart LR
@@ -62,9 +62,9 @@ The CSV contract requires:
 
 Normalization applies Unicode NFKC, case folding, extension removal, punctuation-to-space conversion, and whitespace collapsing. It deliberately preserves version numbers and dates to limit false positives.
 
-## Privacy and data boundary
+## Data boundary
 
-Every asset name, identifier, role, source reference, date, and checksum in this repository is invented for the fixture. The repository contains no live source rows, provider IDs, personal names, email addresses, permissions, machine paths, credentials, or private filenames.
+The included dataset is a synthetic fixture. It contains no live catalog rows or operational identifiers and covers only the fields required to exercise validation, metrics, and match generation.
 
 ## Project structure
 
@@ -79,7 +79,7 @@ tests/fixtures/synthetic_catalog.csv
 
 - Name matching is deterministic and conservative; it is not fuzzy or semantic entity resolution.
 - Checksum matching can only assess records that already have checksums.
-- Confidence thresholds are explicit demonstration policy, not universal DAM standards.
+- The stated confidence thresholds are specific to this audit model, not universal DAM standards.
 - The tool audits one CSV snapshot and does not connect to a live provider or write remediations.
 
 ## License
