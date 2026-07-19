@@ -1,0 +1,32 @@
+name: Catalog audit CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Compile source
+        run: python -m compileall -q catalog_audit.py tests
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Audit synthetic fixture
+        run: python catalog_audit.py tests/fixtures/synthetic_catalog.csv --format json

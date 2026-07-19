@@ -1,0 +1,9 @@
+asset_id,artifact_name,asset_type,source_system,source_reference,owner_role,provenance_status,confidence,classification,last_reviewed,checksum_sha256
+ASSET-001,Q1 Portfolio Summary.pdf,document,managed_repository,REF-001,Strategy,verified,0.98,internal,2026-07-01,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+ASSET-002,q1-portfolio-summary.PDF,document,archive_import,REF-002,Strategy,partial,0.74,internal,2026-07-02,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+ASSET-003,Asset Taxonomy.csv,spreadsheet,department_share,REF-003,Governance,verified,0.93,public,2026-07-03,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+ASSET-004,Asset Taxonomy.csv,spreadsheet,archive_import,REF-004,Governance,unknown,0.42,internal,2026-07-04,
+ASSET-005,Customer Journey Map.png,image,managed_repository,REF-005,Experience,verified,0.88,public,2026-07-05,cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+ASSET-006,Legacy Notes.txt,document,archive_import,REF-006,Operations,unknown,0.31,restricted,2026-07-06,
+ASSET-007,Launch Brief.docx,document,managed_repository,REF-007,Operations,verified,0.95,internal,2026-07-07,dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+ASSET-008,launch_brief.DOCX,document,department_share,REF-008,Operations,partial,0.71,internal,2026-07-08,eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
