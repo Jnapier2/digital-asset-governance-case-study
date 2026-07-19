@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Jnapier2/digital-asset-governance-case-study/actions/workflows/ci.yml/badge.svg)](https://github.com/Jnapier2/digital-asset-governance-case-study/actions/workflows/ci.yml)
 
-A deterministic, read-only Python audit for measuring data quality in a digital-asset inventory and producing a human review queue. It uses only the Python standard library and includes a synthetic fixture.
+Digital Asset Governance Audit turns catalog-quality questions into reviewable evidence. The deterministic, read-only Python tool reports schema health, provenance coverage, confidence distribution, and duplicate candidates, then produces a human review queue without changing source records. It uses only the Python standard library and includes a synthetic fixture.
 
 ## Fixture results
 
