@@ -2,7 +2,7 @@
 
 ## Supported version
 
-Security fixes are applied to the current `main` branch. This portfolio case study has no deployed service and does not connect to a live content provider.
+Security fixes are applied to the current `main` branch. This read-only audit has no deployed service and does not connect to a live content provider.
 
 ## Report a vulnerability
 

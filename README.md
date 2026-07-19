@@ -1,6 +1,8 @@
 # Digital Asset Governance Audit
 
-A small, read-only Python audit that turns a digital-asset inventory into measurable data-quality signals and a human review queue. The repository uses only synthetic records and the Python standard library.
+[![CI](https://github.com/Jnapier2/digital-asset-governance-case-study/actions/workflows/ci.yml/badge.svg)](https://github.com/Jnapier2/digital-asset-governance-case-study/actions/workflows/ci.yml)
+
+A deterministic, read-only Python audit that turns a digital-asset inventory into measurable data-quality signals and a human review queue. The repository uses only synthetic records and the Python standard library.
 
 ## Demonstrated outcome
 
@@ -60,7 +62,7 @@ The CSV contract requires:
 
 Normalization applies Unicode NFKC, case folding, extension removal, punctuation-to-space conversion, and whitespace collapsing. It deliberately preserves version numbers and dates to limit false positives.
 
-## Privacy and publication boundary
+## Privacy and data boundary
 
 Every asset name, identifier, role, source reference, date, and checksum in this repository is invented for the fixture. The repository contains no live source rows, provider IDs, personal names, email addresses, permissions, machine paths, credentials, or private filenames.
 
