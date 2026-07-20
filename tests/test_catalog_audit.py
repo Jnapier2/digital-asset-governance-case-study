@@ -94,7 +94,7 @@ class CatalogAuditRuleTests(unittest.TestCase):
         issue_codes = {issue["code"] for issue in report["validation"]["issues"]}
         self.assertIn("missing_column", issue_codes)
 
-    def test_invalid_confidence_and_personal_owner_are_rejected(self) -> None:
+    def test_invalid_confidence_and_uncontrolled_owner_are_rejected(self) -> None:
         row = self.valid_row()
         row["confidence"] = "1.20"
         row["owner_role"] = "NamedOwner@invalid"
@@ -102,8 +102,31 @@ class CatalogAuditRuleTests(unittest.TestCase):
         issue_codes = {issue["code"] for issue in report["validation"]["issues"]}
 
         self.assertIn("out_of_range", issue_codes)
-        self.assertIn("personal_identifier", issue_codes)
+        self.assertIn("invalid_owner_role", issue_codes)
         self.assertEqual(report["metrics"]["confidence"]["scored_count"], 0)
+
+    def test_person_name_cannot_be_used_as_owner_role(self) -> None:
+        row = self.valid_row()
+        row["owner_role"] = "Jerry Napier"
+        report = catalog_audit.audit_catalog(self.write_csv([row]))
+
+        self.assertIn(
+            "invalid_owner_role",
+            {issue["code"] for issue in report["validation"]["issues"]},
+        )
+
+    def test_header_only_catalog_is_rejected(self) -> None:
+        report = catalog_audit.audit_catalog(self.write_csv([]))
+
+        self.assertFalse(report["schema"]["valid"])
+        self.assertEqual(
+            report["metrics"]["records"],
+            {"total": 0, "valid": 0, "valid_rate": 0.0},
+        )
+        self.assertIn(
+            "empty_catalog",
+            {issue["code"] for issue in report["validation"]["issues"]},
+        )
 
     def test_artifact_paths_are_rejected(self) -> None:
         row = self.valid_row()

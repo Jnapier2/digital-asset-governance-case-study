@@ -52,6 +52,10 @@ ALLOWED_VALUES = {
     "classification": {"internal", "public", "restricted"},
 }
 
+ALLOWED_OWNER_ROLES = frozenset(
+    {"Experience", "Governance", "Operations", "Strategy"}
+)
+
 HIGH_CONFIDENCE_MIN = 0.85
 MEDIUM_CONFIDENCE_MIN = 0.60
 SAFE_IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{2,63}$")
@@ -145,6 +149,16 @@ def read_catalog(path: Path) -> tuple[list[dict[str, str]], list[ValidationIssue
             }
             rows.append(row)
 
+        if not rows:
+            issues.append(
+                ValidationIssue(
+                    1,
+                    "catalog",
+                    "empty_catalog",
+                    "Catalog must contain at least one data record.",
+                )
+            )
+
     return rows, issues
 
 
@@ -212,13 +226,14 @@ def validate_rows(rows: Sequence[Mapping[str, str]]) -> list[ValidationIssue]:
             )
 
         owner_role = row.get("owner_role", "")
-        if "@" in owner_role:
+        if owner_role and owner_role not in ALLOWED_OWNER_ROLES:
             issues.append(
                 ValidationIssue(
                     row_number,
                     "owner_role",
-                    "personal_identifier",
-                    "Use a role or team label, not an email address.",
+                    "invalid_owner_role",
+                    "Expected one of the controlled role labels: "
+                    f"{', '.join(sorted(ALLOWED_OWNER_ROLES))}.",
                 )
             )
 
