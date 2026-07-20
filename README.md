@@ -57,12 +57,14 @@ The CSV contract requires:
 |---|---|
 | Identity | Unique safe `asset_id`; label-only `artifact_name` with no path |
 | Type and source | Controlled `asset_type` and `source_system`; opaque safe `source_reference` |
-| Stewardship | Role-based `owner_role`; controlled `classification`; ISO review date |
+| Stewardship | Controlled `owner_role` (`Experience`, `Governance`, `Operations`, or `Strategy`); controlled `classification`; ISO review date |
 | Provenance | `verified`, `partial`, or `unknown` |
 | Confidence | Numeric score from 0 through 1; high is `>= 0.85`, medium is `>= 0.60`, lower scores enter review |
 | Integrity | Optional 64-character SHA-256 digest |
 
 Normalization applies Unicode NFKC, case folding, extension removal, punctuation-to-space conversion, and whitespace collapsing. It deliberately preserves version numbers and dates to limit false positives.
+
+The catalog must contain at least one data record. The controlled owner vocabulary keeps stewardship labels role-based and prevents names, email addresses, and other free-text personal identifiers from entering that field. A production implementation can revise `ALLOWED_OWNER_ROLES` through a governed schema change.
 
 ## Data boundary
 
