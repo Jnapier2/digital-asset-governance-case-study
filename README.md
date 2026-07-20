@@ -35,7 +35,7 @@ flowchart LR
 
 The tool never changes the catalog. Duplicate matches are candidates for review, not automatic deletion decisions.
 
-Catalog validity and stewardship priority are intentionally separate: low-confidence rows and duplicate candidates can enter review without converting an otherwise valid dataset into a failed run. This keeps automation useful while leaving uncertain identity decisions with a person.
+Low-confidence rows and duplicate candidates enter the review queue without failing an otherwise valid catalog. The tool separates structural data quality from identity decisions that still require a person.
 
 ## Run it
 
