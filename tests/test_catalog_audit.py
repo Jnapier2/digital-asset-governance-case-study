@@ -55,7 +55,41 @@ class CatalogAuditFixtureTests(unittest.TestCase):
 
         self.assertIn("Records: 8 total; 8 valid (100.0%)", summary)
         self.assertIn("Provenance documented: 6/8 (75.0%)", summary)
+        self.assertIn(
+            "Prioritized review queue: 7 assets; high 2, medium 5, low 0",
+            summary,
+        )
         self.assertIn("Validation issues: 0", summary)
+
+    def test_review_queue_prioritizes_identity_and_provenance_risk(self) -> None:
+        report = catalog_audit.audit_catalog(FIXTURE)
+        queue = report["review_queue"]
+
+        self.assertEqual(queue["counts"], {"high": 2, "medium": 5, "low": 0})
+        self.assertEqual(
+            [item["asset_id"] for item in queue["items"]],
+            [
+                "ASSET-004",
+                "ASSET-006",
+                "ASSET-001",
+                "ASSET-002",
+                "ASSET-003",
+                "ASSET-007",
+                "ASSET-008",
+            ],
+        )
+        highest_risk = queue["items"][0]
+        self.assertEqual(highest_risk["priority"], "high")
+        self.assertEqual(
+            highest_risk["reason_codes"],
+            [
+                "low_confidence",
+                "unknown_provenance",
+                "missing_checksum",
+                "duplicate_exact_name",
+            ],
+        )
+        self.assertIn("before any reuse", highest_risk["recommended_next_step"])
 
 
 class CatalogAuditRuleTests(unittest.TestCase):
@@ -142,6 +176,29 @@ class CatalogAuditRuleTests(unittest.TestCase):
         self.assertEqual(
             catalog_audit.normalize_artifact_name("Launch—Brief_v2.DOCX"),
             "launch brief v2",
+        )
+
+    def test_partial_provenance_without_other_signals_is_low_priority(self) -> None:
+        row = self.valid_row()
+        row["provenance_status"] = "partial"
+        report = catalog_audit.audit_catalog(self.write_csv([row]))
+
+        self.assertEqual(
+            report["review_queue"],
+            {
+                "counts": {"high": 0, "medium": 0, "low": 1},
+                "items": [
+                    {
+                        "asset_id": "TEST-001",
+                        "priority": "low",
+                        "reason_codes": ["partial_provenance"],
+                        "recommended_next_step": (
+                            "Complete the provenance record during the next "
+                            "stewardship review."
+                        ),
+                    }
+                ],
+            },
         )
 
 

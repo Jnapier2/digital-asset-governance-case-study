@@ -16,7 +16,7 @@ The audit is read-only, but its report repeats selected catalog labels and ident
 
 ## Scope notes
 
-- Duplicate candidates require human review; the tool performs no deletion or merge.
+- Duplicate candidates and prioritized queue items require human review; the tool performs no relocation, deletion, merge, or other remediation.
 - Header-only catalogs are rejected because zero records cannot demonstrate catalog readiness or data quality.
 - CSV formula evaluation is out of scope because the tool parses values as text and does not open them in a spreadsheet engine.
 - Availability or policy defects in external data sources are out of scope because this project has no external integration.
