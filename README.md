@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Jnapier2/digital-asset-governance-case-study/actions/workflows/ci.yml/badge.svg)](https://github.com/Jnapier2/digital-asset-governance-case-study/actions/workflows/ci.yml)
 
-Digital Asset Governance Audit turns catalog-quality questions into reviewable evidence. The deterministic, read-only Python tool reports schema health, provenance coverage, confidence distribution, and duplicate candidates, then produces a human review queue without changing source records. It uses only the Python standard library and includes a synthetic fixture.
+Digital Asset Governance Audit turns catalog-quality questions into reviewable decisions. The deterministic, read-only Python tool reports schema health, provenance coverage, confidence distribution, and duplicate candidates, then converts those signals into a prioritized stewardship queue without changing source records. It uses only the Python standard library and includes a synthetic fixture.
 
 ## Fixture results
 
@@ -13,6 +13,7 @@ Running the included fixture produces these deterministic sample results:
 - **100% have source-reference and review-date coverage; 75% have SHA-256 coverage.**
 - **Mean confidence is 0.74**, with four high-, two medium-, and two low-confidence records.
 - The review queue contains **one exact-name group, two normalized-name groups, and one exact-checksum group**.
+- The unified stewardship queue prioritizes **two high-risk and five medium-risk records**; each item includes the evidence signals and a controlled next step.
 
 These are fixture results, not claims about a production catalog. The sample includes incomplete provenance, missing checksums, and duplicate candidates so each audit path has deterministic coverage.
 
@@ -20,7 +21,7 @@ These are fixture results, not claims about a production catalog. The sample inc
 
 Asset inventories can combine authoritative records with partial imports, inconsistent filenames, and uncertain provenance. The audit answers three questions: which records satisfy the schema, which fields have evidence coverage, and which records require duplicate review.
 
-The pipeline is read-only:
+The pipeline is read-only and separates evidence from authority:
 
 ```mermaid
 flowchart LR
@@ -30,12 +31,13 @@ flowchart LR
     B --> E["Text or JSON audit report"]
     C --> E
     D --> E
-    E --> F["Human stewardship review"]
+    E --> F["Prioritized stewardship queue"]
+    F --> G["Human-owned disposition"]
 ```
 
-The tool never changes the catalog. Duplicate matches are candidates for review, not automatic deletion decisions.
+The tool never changes the catalog. Duplicate matches are candidates for review, not automatic deletion decisions. High-priority items combine weak identity evidence, unknown provenance, or low confidence; medium-priority items surface duplicate signals for comparison; partial provenance alone enters the next routine stewardship review.
 
-Low-confidence rows and duplicate candidates enter the review queue without failing an otherwise valid catalog. The tool separates structural data quality from identity decisions that still require a person.
+Every queued item carries machine-readable reason codes and a conservative next step. This turns a broad quality report into an ordered workload while keeping reuse, relocation, merge, and deletion decisions with a person.
 
 ## Run it
 
@@ -84,6 +86,7 @@ tests/fixtures/synthetic_catalog.csv
 - Name matching is deterministic and conservative; it is not fuzzy or semantic entity resolution.
 - Checksum matching can only assess records that already have checksums.
 - The stated confidence thresholds are specific to this audit model, not universal DAM standards.
+- Queue priority organizes human review; it is not a retention decision, risk certification, or automated remediation.
 - The tool audits one CSV snapshot and does not connect to a live provider or write remediations.
 
 ## License

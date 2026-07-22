@@ -355,6 +355,89 @@ def duplicate_candidates(
     }
 
 
+def build_review_queue(
+    rows: Sequence[Mapping[str, str]],
+    duplicates: Mapping[str, Sequence[DuplicateGroup]],
+) -> dict[str, object]:
+    """Turn audit signals into a deterministic, human-owned review queue.
+
+    The queue prioritizes stewardship work without authorizing a mutation.
+    Duplicate signals are intentionally advisory: an exact checksum or similar
+    label is evidence to compare records, never an instruction to merge or
+    delete them.
+    """
+
+    duplicate_rules_by_asset: defaultdict[str, set[str]] = defaultdict(set)
+    for rule_name, groups in duplicates.items():
+        for group in groups:
+            for asset_id in group.asset_ids:
+                duplicate_rules_by_asset[asset_id].add(rule_name)
+
+    items: list[dict[str, object]] = []
+    priority_order = {"high": 0, "medium": 1, "low": 2}
+
+    for row in rows:
+        asset_id = row.get("asset_id", "")
+        reason_codes: list[str] = []
+
+        try:
+            confidence = float(row.get("confidence", ""))
+        except ValueError:
+            confidence = None
+
+        if confidence is not None and 0.0 <= confidence < MEDIUM_CONFIDENCE_MIN:
+            reason_codes.append("low_confidence")
+
+        provenance = row.get("provenance_status", "")
+        if provenance == "unknown":
+            reason_codes.append("unknown_provenance")
+        elif provenance == "partial":
+            reason_codes.append("partial_provenance")
+
+        if not row.get("checksum_sha256", ""):
+            reason_codes.append("missing_checksum")
+
+        for rule_name in sorted(duplicate_rules_by_asset.get(asset_id, ())):
+            reason_codes.append(f"duplicate_{rule_name}")
+
+        if not reason_codes:
+            continue
+
+        if "low_confidence" in reason_codes or "unknown_provenance" in reason_codes:
+            priority = "high"
+            next_step = (
+                "Verify provenance and identity before any reuse, relocation, "
+                "merge, or deletion."
+            )
+        elif any(code.startswith("duplicate_") for code in reason_codes):
+            priority = "medium"
+            next_step = (
+                "Compare source references and checksums before resolving the "
+                "duplicate candidate."
+            )
+        else:
+            priority = "low"
+            next_step = (
+                "Complete the provenance record during the next stewardship review."
+            )
+
+        items.append(
+            {
+                "asset_id": asset_id,
+                "priority": priority,
+                "reason_codes": reason_codes,
+                "recommended_next_step": next_step,
+            }
+        )
+
+    items.sort(key=lambda item: (priority_order[item["priority"]], item["asset_id"]))
+    counts = {
+        priority: sum(item["priority"] == priority for item in items)
+        for priority in ("high", "medium", "low")
+    }
+    return {"counts": counts, "items": items}
+
+
 def build_metrics(
     rows: Sequence[Mapping[str, str]], issues: Sequence[ValidationIssue]
 ) -> dict[str, object]:
@@ -435,6 +518,7 @@ def audit_catalog(path: Path) -> dict[str, object]:
     rows, schema_issues = read_catalog(path)
     issues = schema_issues + validate_rows(rows)
     duplicates = duplicate_candidates(rows)
+    review_queue = build_review_queue(rows, duplicates)
 
     return {
         "catalog": path.name,
@@ -447,6 +531,7 @@ def audit_catalog(path: Path) -> dict[str, object]:
             name: [asdict(group) for group in groups]
             for name, groups in duplicates.items()
         },
+        "review_queue": review_queue,
         "validation": {
             "issue_count": len(issues),
             "issues": [asdict(issue) for issue in issues],
@@ -467,6 +552,8 @@ def render_text(report: Mapping[str, object]) -> str:
         name: len(groups)
         for name, groups in report["duplicate_candidates"].items()
     }
+    review_queue = report["review_queue"]
+    review_counts = review_queue["counts"]
 
     return "\n".join(
         (
@@ -500,6 +587,11 @@ def render_text(report: Mapping[str, object]) -> str:
                 f"{duplicate_counts['exact_name']}; normalized name "
                 f"{duplicate_counts['normalized_name']}; exact checksum "
                 f"{duplicate_counts['exact_checksum']}"
+            ),
+            (
+                f"Prioritized review queue: {len(review_queue['items'])} assets; "
+                f"high {review_counts['high']}, medium {review_counts['medium']}, "
+                f"low {review_counts['low']}"
             ),
             f"Validation issues: {report['validation']['issue_count']}",
         )
