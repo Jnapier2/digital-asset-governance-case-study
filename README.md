@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/Jnapier2/digital-asset-governance-case-study/actions/workflows/ci.yml/badge.svg)](https://github.com/Jnapier2/digital-asset-governance-case-study/actions/workflows/ci.yml)
 
+[Portfolio](https://jerry-napier-portfolio.netlify.app/) · [GitHub profile](https://github.com/Jnapier2)
+
 Digital Asset Governance Audit turns catalog-quality questions into reviewable decisions. The deterministic, read-only Python tool reports schema health, provenance coverage, confidence distribution, and duplicate candidates, then converts those signals into a prioritized stewardship queue without changing source records. It uses only the Python standard library and includes a synthetic fixture.
 
 ## Fixture results
