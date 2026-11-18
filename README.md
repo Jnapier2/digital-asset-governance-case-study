@@ -55,6 +55,15 @@ The command exits with `0` when validation passes, `1` when schema or row valida
 
 ## Audit model
 
+CSV headers must be unique. Ambiguous duplicate headers stop row interpretation rather
+than silently choosing one value; the zero evaluated records in that error report do
+not describe the size of the source catalog. Every row must contain the header's
+number of fields. An optional checksum may be explicitly blank, but a missing
+trailing field is a structural error. UTF-8 (with or without a BOM), quoted commas,
+and quoted newlines are supported; unterminated quoted fields and invalid encoding
+produce an audit error. Review dates must use valid `YYYY-MM-DD` calendar dates,
+not compact or week-date alternatives. The tool still leaves input bytes unchanged.
+
 The CSV contract requires:
 
 | Area | Fields and rules |

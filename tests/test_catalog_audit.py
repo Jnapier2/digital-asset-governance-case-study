@@ -202,5 +202,124 @@ class CatalogAuditRuleTests(unittest.TestCase):
         )
 
 
+class CatalogInputBoundaryTests(unittest.TestCase):
+    """Synthetic CSV-contract regressions; never changes the input catalog."""
+
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.path = Path(self.temp.name) / "catalog.csv"
+        with FIXTURE.open(encoding="utf-8", newline="") as handle:
+            self.row = next(csv.DictReader(handle))
+
+    def write(self, columns=None, values=None) -> Path:
+        columns = list(catalog_audit.EXPECTED_COLUMNS) if columns is None else columns
+        values = [self.row[key] for key in columns] if values is None else values
+        with self.path.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(columns)
+            writer.writerow(values)
+        return self.path
+
+    def codes(self):
+        return {i["code"] for i in catalog_audit.audit_catalog(self.path)["validation"]["issues"]}
+
+    def test_duplicate_header_does_not_silently_select_last_value(self):
+        cols = list(catalog_audit.EXPECTED_COLUMNS) + ["confidence"]
+        self.write(cols, list(self.row.values()) + ["0.10"])
+        original = self.path.read_bytes()
+        report = catalog_audit.audit_catalog(self.path)
+        self.assertFalse(report["schema"]["valid"])
+        self.assertIn("duplicate_column", self.codes())
+        self.assertEqual(report["metrics"]["confidence"]["scored_count"], 0)
+        self.assertEqual(self.path.read_bytes(), original)
+
+    def test_duplicate_optional_column_is_also_rejected(self):
+        cols = list(catalog_audit.EXPECTED_COLUMNS) + ["checksum_sha256"]
+        self.write(cols, list(self.row.values()) + [""])
+        self.assertIn("duplicate_column", self.codes())
+
+    def test_missing_optional_field_is_not_explicit_blank(self):
+        self.write(values=list(self.row.values())[:-1])
+        self.assertIn("missing_values", self.codes())
+        self.assertEqual(catalog_audit.audit_catalog(self.path)["metrics"]["records"]["valid"], 0)
+
+    def test_explicit_blank_optional_field_remains_valid(self):
+        self.row["checksum_sha256"] = ""
+        self.write()
+        self.assertEqual(self.codes(), set())
+
+    def test_dates_require_documented_calendar_format(self):
+        for value in ("20260701", "2026-W27-3", "2026-W27", "2026-7-1", "2026-07-01T00:00:00"):
+            with self.subTest(value=value):
+                self.row["last_reviewed"] = value
+                self.write()
+                self.assertIn("invalid_date", self.codes())
+
+    def test_calendar_validity_and_leap_days_are_checked(self):
+        for value, valid in (("2024-02-29", True), ("2026-02-29", False), ("2026-13-01", False)):
+            with self.subTest(value=value):
+                self.row["last_reviewed"] = value
+                self.write()
+                self.assertEqual("invalid_date" not in self.codes(), valid)
+
+    def test_reordered_unique_columns_remain_supported(self):
+        self.write(list(reversed(catalog_audit.EXPECTED_COLUMNS)))
+        self.assertEqual(self.codes(), set())
+
+    def test_bom_and_quoted_commas_and_newlines_remain_supported(self):
+        self.row["artifact_name"] = "Synthetic, report\ncontinued.pdf"
+        self.write()
+        self.path.write_bytes(b"\xef\xbb\xbf" + self.path.read_bytes())
+        rows, issues = catalog_audit.read_catalog(self.path)
+        self.assertEqual(issues, [])
+        self.assertEqual(rows[0]["artifact_name"], self.row["artifact_name"])
+        self.assertEqual(self.codes(), set())
+
+    def test_unterminated_quoted_field_returns_clean_cli_error(self):
+        import contextlib
+        import io
+        self.write()
+        self.path.write_bytes(self.path.read_bytes() + b'"unterminated')
+        captured, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(captured), contextlib.redirect_stderr(err):
+            code = catalog_audit.main([str(self.path), "--format", "json"])
+        self.assertEqual(code, 2)
+        self.assertEqual(captured.getvalue(), "")
+        self.assertNotIn("Traceback", err.getvalue())
+
+    def test_invalid_encoding_returns_clean_cli_error(self):
+        import contextlib
+        import io
+        self.path.write_bytes(b"private-fixture-marker \xff")
+        captured, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(captured), contextlib.redirect_stderr(err):
+            code = catalog_audit.main([str(self.path)])
+        self.assertEqual(code, 2)
+        self.assertEqual(captured.getvalue(), "")
+        self.assertNotIn("private-fixture-marker", err.getvalue())
+        self.assertIn("UTF-8", err.getvalue())
+
+    def test_duplicate_header_returns_validation_exit_code(self):
+        import contextlib
+        import io
+        self.write(list(catalog_audit.EXPECTED_COLUMNS) + ["confidence"], list(self.row.values()) + ["0.1"])
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(catalog_audit.main([str(self.path)]), 1)
+
+    def test_extra_values_remain_rejected(self):
+        self.write(values=list(self.row.values()) + ["unexpected"])
+        self.assertIn("extra_values", self.codes())
+
+    def test_input_bytes_are_unchanged_after_success_and_rejection(self):
+        for value in ("0.5", "nan", "1e400"):
+            with self.subTest(value=value):
+                self.row["confidence"] = value
+                self.write()
+                original = self.path.read_bytes()
+                catalog_audit.audit_catalog(self.path)
+                self.assertEqual(self.path.read_bytes(), original)
+
+
 if __name__ == "__main__":
     unittest.main()

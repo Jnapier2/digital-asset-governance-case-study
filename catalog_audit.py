@@ -13,7 +13,7 @@ import json
 import re
 import sys
 import unicodedata
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
 from datetime import date
 from pathlib import Path
@@ -104,13 +104,21 @@ def read_catalog(path: Path) -> tuple[list[dict[str, str]], list[ValidationIssue
 
     issues: list[ValidationIssue] = []
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle)
+        reader = csv.DictReader(handle, strict=True)
         if reader.fieldnames is None:
             return [], [
                 ValidationIssue(1, "schema", "missing_header", "CSV header is missing.")
             ]
 
         actual = tuple(reader.fieldnames)
+        duplicates = sorted(name for name, count in Counter(actual).items() if count > 1)
+        if duplicates:
+            # DictReader would overwrite earlier values for a repeated header.
+            # Do not calculate metrics from an ambiguous, lossy mapping.
+            return [], [
+                ValidationIssue(1, name, "duplicate_column", "CSV column names must be unique.")
+                for name in duplicates
+            ]
         missing = [name for name in EXPECTED_COLUMNS if name not in actual]
         unexpected = [name for name in actual if name not in EXPECTED_COLUMNS]
         for name in missing:
@@ -141,6 +149,15 @@ def read_catalog(path: Path) -> tuple[list[dict[str, str]], list[ValidationIssue
                         "schema",
                         "extra_values",
                         "Row has more values than the header defines.",
+                    )
+                )
+            if any(value is None for key, value in raw_row.items() if key is not None):
+                issues.append(
+                    ValidationIssue(
+                        row_number,
+                        "schema",
+                        "missing_values",
+                        "Row has fewer values than the header defines; blank fields must be explicit.",
                     )
                 )
             row = {
@@ -276,6 +293,8 @@ def validate_rows(rows: Sequence[Mapping[str, str]]) -> list[ValidationIssue]:
         reviewed = row.get("last_reviewed", "")
         if reviewed:
             try:
+                if re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", reviewed) is None:
+                    raise ValueError("Noncanonical calendar date")
                 date.fromisoformat(reviewed)
             except ValueError:
                 issues.append(
@@ -616,6 +635,9 @@ def main(argv: Iterable[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         report = audit_catalog(args.catalog)
+    except UnicodeError:
+        print("Unable to audit catalog: input must be valid UTF-8 text.", file=sys.stderr)
+        return 2
     except (OSError, csv.Error) as exc:
         print(f"Unable to audit catalog: {exc}", file=sys.stderr)
         return 2
